@@ -1,3 +1,3 @@
 # Integrator
 
-![](https://img.shields.io/david/mcdobr/licenta-integrator.svg?style=flat)
+[![dependencies Status](https://david-dm.org/mcdobr/licenta-integrator/status.svg)](https://david-dm.org/mcdobr/licenta-integrator)
