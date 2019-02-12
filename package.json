@@ -1,0 +1,28 @@
+{
+  "name": "bookworm-integrator",
+  "version": "1.0.0",
+  "description": "Restful API that talks with big sites such as Amazon, Google Books and Goodreads.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "product",
+    "statistics",
+    "stats",
+    "aggregates"
+  ],
+  "author": "Mircea Dobreanu",
+  "license": "MIT",
+  "dependencies": {
+    "@google-cloud/datastore": "^3.1.0",
+    "body-parser": "^1.18.3",
+    "express": "^4.16.4",
+    "node-cache": "^4.2.0",
+    "request": "^2.88.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.10"
+  }
+}
