@@ -1,24 +1,29 @@
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
+const cors = require('cors');
 const request = require('request');
+const secret = require('./secret');
 
 const NO_SECONDS_IN_HOUR = 3600;
 const NO_SECONDS_IN_WEEK = 7 * 24 * NO_SECONDS_IN_HOUR;
-const NodeCache = require('node-cache');
-
-const goodreadsKey = require('./secret').goodreadsKey;
-const goodreadsCache = new NodeCache({
-	stdTTL: NO_SECONDS_IN_WEEK,
-	checkperiod: NO_SECONDS_IN_HOUR
-});
 
 const {Datastore} = require('@google-cloud/datastore');
 const datastore = new Datastore({
     projectId: 'bookworm-221210'
 });
 
-let lastRefreshKeys = 0;
+const memjs = require('memjs');
+const cacheClient = memjs.Client.create(`${secret.cacheUser}:${secret.cachePassword}@${secret.cacheEndpoint}`, {
+	expires: NO_SECONDS_IN_WEEK
+});
+
+const corsOptions = {
+	origin: /bookworm-221210.appspot.com/i
+};
+
+app.use(cors(corsOptions));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
 	extended: false
@@ -29,11 +34,7 @@ app.get('/', (req, res) => {
 });
 
 app.get('/goodreads/refresh', async (req, res) => {
-	if (lastRefreshKeys && lastRefreshKeys == goodreadsCache.stats.keys) {
-		res.status(304).end();
-		return;
-	}
-
+	//TODO: check if refresh is not needed
 	res.status(201).end();
 
 	const baseUrl = 'https://www.goodreads.com/book/review_counts.json?isbns=';
@@ -60,7 +61,7 @@ app.get('/goodreads/refresh', async (req, res) => {
 					json: true
 				}, function (error, response, body) {
 					if (response.statusCode == 200) {
-						body.books.forEach(bookStatistic => {
+						for (bookStatistic of body.books)  {
 							let isbn;
 							if (bookStatistic.isbn13)
 								isbn = bookStatistic.isbn13;
@@ -68,10 +69,10 @@ app.get('/goodreads/refresh', async (req, res) => {
 								isbn = bookStatistic.isbn;
 
 							if (isbn) {
-								goodreadsCache.set(isbn, bookStatistic);
+								cacheClient.set(isbn, JSON.stringify(bookStatistic), { expires: NO_SECONDS_IN_WEEK}, (err, success) => {
+								});
 							}
-						});
-						lastRefreshKeys = goodreadsCache.stats.keys;
+						}
 					} else {
 						console.error(`Received response status code: ${response.statusCode}`);
 					}
@@ -84,22 +85,26 @@ app.get('/goodreads/refresh', async (req, res) => {
 			break;
 		}
 	}
+
 	console.log('Finished sending requests to goodreads for statistics');
 });
 
+
 /**
  * @returns 200 if in cache
- * 			204 if not in cache
+ * 			404 if not in cache
  * 			400 if cannot make anything of request
  */
-app.get('/:provider/:isbn', (req, res) => {
+app.get('/:provider/:isbn', async (req, res) => {
 	if (req.params.provider == 'goodreads') {
 		const isbn = req.params.isbn;
-		let reviewStats = goodreadsCache.get(isbn);
-		
-		if (reviewStats == undefined) {
-			res.status(204).end();
+
+		let {value, flags} = await cacheClient.get(isbn);
+
+		if (value === null && flags === null) {
+			res.status(404).end();
 		} else {
+			let reviewStats = JSON.parse(value.toString('utf-8'));
 			res.status(200).send(reviewStats).end();
 		}
 	} else {
@@ -109,5 +114,5 @@ app.get('/:provider/:isbn', (req, res) => {
 
 const PORT = process.env.PORT || 8081;
 app.listen(PORT, () => {
-	console.log(`App listening on port ${PORT}`);
+	console.log(`Integrator server started on port ${PORT}`);
 });
