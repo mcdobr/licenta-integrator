@@ -53,7 +53,7 @@ app.get('/goodreads/refresh', async (req, res) => {
 		console.log(`Request number ${++iter}`);
 		if (info.moreResults !== Datastore.NO_MORE_RESULTS) {
 			let isbns = entities.map(item => item.isbn).join('%2C');
-			let requestUrl = `${baseUrl}${isbns}&key=${goodreadsKey}`;
+			let requestUrl = `${baseUrl}${isbns}&key=${secret.goodreadsKey}`;
 			
 			setTimeout(() => {
 				request({
@@ -69,7 +69,10 @@ app.get('/goodreads/refresh', async (req, res) => {
 								isbn = bookStatistic.isbn;
 
 							if (isbn) {
-								cacheClient.set(isbn, JSON.stringify(bookStatistic), { expires: NO_SECONDS_IN_WEEK}, (err, success) => {
+								let goodreadsData = JSON.parse(JSON.stringify(bookStatistic));
+								const toOmit = ['ratings_count', 'reviews_count', 'text_reviews_count', 'reviews_count', 'work_text_reviews_count'];
+								omitProperties(goodreadsData, toOmit);
+								cacheClient.set(isbn, JSON.stringify(goodreadsData), { expires: NO_SECONDS_IN_WEEK }, (err, success) => {
 								});
 							}
 						}
@@ -88,6 +91,14 @@ app.get('/goodreads/refresh', async (req, res) => {
 
 	console.log('Finished sending requests to goodreads for statistics');
 });
+
+function omitProperties(obj, props) {
+	for (let prop of props) {
+		if (obj.hasOwnProperty(prop)) {
+			delete obj[prop];
+		}
+	}
+}
 
 
 /**
