@@ -35,10 +35,10 @@ app.get('/', (req, res) => {
 
 app.get('/goodreads/refresh', async (req, res) => {
 	//TODO: check if refresh is not needed
-	res.status(201).end();
+	res.status(202).end();
 
 	const baseUrl = 'https://www.goodreads.com/book/review_counts.json?isbns=';
-	const MAX_ITEMS_IN_BATCH = 500;
+	const MAX_ITEMS_IN_BATCH = 100;
 	const GOODREADS_DELAY_MS = 2000;
 
 	let getBatchOfIsbnsQuery = datastore.createQuery('Book')
@@ -50,34 +50,38 @@ app.get('/goodreads/refresh', async (req, res) => {
 
 	let iter = 0;
 	while (true) {
-		console.log(`Request number ${++iter}`);
+		
 		if (info.moreResults !== Datastore.NO_MORE_RESULTS) {
 			let isbns = entities.map(item => item.isbn).join('%2C');
 			let requestUrl = `${baseUrl}${isbns}&key=${secret.goodreadsKey}`;
-			
+		
 			setTimeout(() => {
+				console.log(`Request number ${++iter}`);
+				console.log(requestUrl);
 				request({
 					url: requestUrl,
 					json: true
 				}, function (error, response, body) {
-					if (response.statusCode == 200) {
-						for (bookStatistic of body.books)  {
-							let isbn;
-							if (bookStatistic.isbn13)
-								isbn = bookStatistic.isbn13;
-							else
-								isbn = bookStatistic.isbn;
+					if (response) {
+						if (response.statusCode == 200) {
+							for (bookStatistic of body.books)  {
+								let isbn;
+								if (bookStatistic.isbn13)
+									isbn = bookStatistic.isbn13;
+								else
+									isbn = bookStatistic.isbn;
 
-							if (isbn) {
-								let goodreadsData = JSON.parse(JSON.stringify(bookStatistic));
-								const toOmit = ['ratings_count', 'reviews_count', 'text_reviews_count', 'reviews_count', 'work_text_reviews_count'];
-								omitProperties(goodreadsData, toOmit);
-								cacheClient.set(isbn, JSON.stringify(goodreadsData), { expires: NO_SECONDS_IN_WEEK }, (err, success) => {
-								});
+								if (isbn) {
+									let goodreadsData = JSON.parse(JSON.stringify(bookStatistic));
+									const toOmit = ['ratings_count', 'reviews_count', 'text_reviews_count', 'reviews_count', 'work_text_reviews_count'];
+									omitProperties(goodreadsData, toOmit);
+									cacheClient.set(isbn, JSON.stringify(goodreadsData), { expires: NO_SECONDS_IN_WEEK }, (err, success) => {
+									});
+								}
 							}
+						} else {
+							console.error(`Received response status code: ${response.statusCode}`);
 						}
-					} else {
-						console.error(`Received response status code: ${response.statusCode}`);
 					}
 				});
 			}, GOODREADS_DELAY_MS);
@@ -123,7 +127,7 @@ app.get('/:provider/:isbn', async (req, res) => {
 	}
 });
 
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT || 8082;
 app.listen(PORT, () => {
 	console.log(`Integrator server started on port ${PORT}`);
 });
