@@ -33,6 +33,12 @@ app.get('/', (req, res) => {
 	res.send('<h1>Integrator</h1>').end();
 });
 
+
+app.get('/google/refresh', async (req, res) => {
+
+});
+
+
 app.get('/goodreads/refresh', async (req, res) => {
 	//TODO: check if refresh is not needed
 	res.status(202).end();

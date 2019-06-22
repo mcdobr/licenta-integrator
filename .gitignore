@@ -79,3 +79,7 @@ typings/
 
 # Manually added
 secret.js
+
+# JetBrains stuff
+*.iml
+.idea/*
