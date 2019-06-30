@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 const request = require('request');
 const secret = require('./secret');
+const helmet = require('helmet');
 
 const NO_SECONDS_IN_HOUR = 3600;
 const NO_SECONDS_IN_WEEK = 7 * 24 * NO_SECONDS_IN_HOUR;
@@ -22,8 +23,8 @@ const corsOptions = {
 	origin: /bookworm-221210.appspot.com/i
 };
 
+app.use(helmet())
 app.use(cors(corsOptions));
-
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
 	extended: false
@@ -69,7 +70,7 @@ app.get('/goodreads/refresh', async (req, res) => {
 					json: true
 				}, function (error, response, body) {
 					if (response) {
-						if (response.statusCode == 200) {
+						if (response.statusCode === 200) {
 							for (bookStatistic of body.books)  {
 								let isbn;
 								if (bookStatistic.isbn13)
@@ -117,7 +118,7 @@ function omitProperties(obj, props) {
  * 			400 if cannot make anything of request
  */
 app.get('/:provider/:isbn', async (req, res) => {
-	if (req.params.provider == 'goodreads') {
+	if (req.params.provider === 'goodreads') {
 		const isbn = req.params.isbn;
 
 		let {value, flags} = await cacheClient.get(isbn);

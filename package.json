@@ -20,9 +20,11 @@
     "body-parser": "^1.18.3",
     "cors": "^2.8.5",
     "express": "^4.16.4",
+    "helmet": "^3.18.0",
     "memjs": "^1.2.0",
     "request": "^2.88.0",
-    "typescript": "^3.3.3333"
+    "typescript": "^3.3.3333",
+    "validator": "^11.0.0"
   },
   "devDependencies": {
     "nodemon": "^1.18.10"
